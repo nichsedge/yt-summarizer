@@ -1,7 +1,7 @@
 import os
 import re
 import logging
-from typing import List, Dict, Optional, Tuple, Set
+from typing import List, Dict, Optional, Tuple, Set, Any
 from urllib.parse import urlparse, parse_qs
 import requests
 from openai import OpenAI
@@ -12,7 +12,93 @@ import tiktoken
 # Configure basic logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+
+class ProviderConfig:
+    """Configuration class for AI providers"""
+    
+    # Provider configurations
+    PROVIDERS = {
+        "openai": {
+            "default_model": "gpt-3.5-turbo",
+            "base_url": None,  # Use OpenAI default
+            "api_key_env": "OPENAI_API_KEY",
+            "extra_headers": {},
+            "extra_body": {}
+        },
+        "openrouter": {
+            "default_model": "openai/gpt-oss-20b:free",
+            "base_url": "https://openrouter.ai/api/v1",
+            "api_key_env": "OPENROUTER_API_KEY",
+            "extra_headers": {
+                "HTTP-Referer": "https://nichsedge.github.io/digital-garden",
+                "X-Title": "Youtube Summarizer"
+            },
+            "extra_body": {}
+        },
+        "ollama": {
+            "default_model": "llama3.2:3b",
+            "base_url": "http://localhost:11434/v1",
+            "api_key_env": "OLLAMA_API_KEY",
+            "extra_headers": {},
+            "extra_body": {}
+        }
+    }
+    
+    def __init__(self, provider: str = None, model: str = None, api_key: str = None):
+        """
+        Initialize provider configuration
+        
+        Args:
+            provider: AI provider (openai, openrouter, ollama)
+            model: Model name for the provider
+            api_key: API key for authentication
+        """
+        # Get provider from constructor or environment
+        self.provider = provider or os.getenv("AI_PROVIDER", "openrouter")
+        
+        # Validate provider
+        if self.provider not in self.PROVIDERS:
+            raise ValueError(f"Unsupported provider: {self.provider}. Supported: {list(self.PROVIDERS.keys())}")
+        
+        # Get provider config
+        self.provider_config = self.PROVIDERS[self.provider]
+        
+        # Get model from constructor or environment or default
+        self.model = model or os.getenv("AI_MODEL") or self.provider_config["default_model"]
+        
+        # Get API key from constructor or environment
+        self.api_key = api_key or os.getenv(self.provider_config["api_key_env"])
+        
+        if not self.api_key:
+            raise ValueError(f"API key required for {self.provider}. Set {self.provider_config['api_key_env']} environment variable or pass api_key parameter.")
+        
+        # Set base URL
+        self.base_url = self.provider_config["base_url"]
+        
+        # Set extra headers and body
+        self.extra_headers = self.provider_config["extra_headers"].copy()
+        self.extra_body = self.provider_config["extra_body"].copy()
+    
+    def create_client(self) -> OpenAI:
+        """Create and return an OpenAI client configured for this provider"""
+        client_kwargs = {"api_key": self.api_key}
+        
+        if self.base_url:
+            client_kwargs["base_url"] = self.base_url
+        
+        return OpenAI(**client_kwargs)
+    
+    def get_request_kwargs(self) -> Dict[str, Any]:
+        """Get additional kwargs for API requests"""
+        kwargs = {}
+        
+        if self.extra_headers:
+            kwargs["extra_headers"] = self.extra_headers
+        
+        if self.extra_body:
+            kwargs["extra_body"] = self.extra_body
+        
+        return kwargs
 
 def sanitize_filename(filename: str) -> str:
         """
@@ -28,16 +114,41 @@ def sanitize_filename(filename: str) -> str:
         return re.sub(r'[<>:"/\\|?*]', '', filename).replace(' ', '_')
 
 class YouTubeSubtitleSummarizer:
-    def __init__(self, openai_api_key: str):
+    def __init__(self, openai_api_key: str = None, provider: str = None, model: str = None, api_key: str = None):
         """
         Initialize the YouTube Subtitle Summarizer
 
         Args:
-            openai_api_key: OpenAI API key for GPT access
+            openai_api_key: Deprecated: Use api_key parameter instead. OpenAI API key for GPT access
+            provider: AI provider (openai, openrouter, ollama)
+            model: Model name for the provider
+            api_key: API key for authentication
         """
-        self.client = OpenAI(api_key=openai_api_key)
-        self.encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
+        # Handle deprecated openai_api_key parameter
+        if openai_api_key and not api_key:
+            api_key = openai_api_key
+            logging.warning("openai_api_key parameter is deprecated. Use api_key instead.")
+        
+        # Initialize provider configuration
+        self.provider_config = ProviderConfig(provider=provider, model=model, api_key=api_key)
+        self.client = self.provider_config.create_client()
+        
+        # Set encoding based on model
+        self.encoding = tiktoken.encoding_for_model(self._get_model_for_encoding())
         self.max_tokens_per_chunk = 3000  # Leave room for system prompt and response
+    
+    def _get_model_for_encoding(self) -> str:
+        """Get appropriate model name for tiktoken encoding"""
+        # Use a simple model name for tiktoken encoding
+        if self.provider_config.provider == "openrouter":
+            # For OpenRouter models, use a compatible model name for encoding
+            return "gpt-3.5-turbo"
+        elif self.provider_config.provider == "ollama":
+            # For Ollama, use a compatible model name
+            return "gpt-3.5-turbo"
+        else:
+            # Default to OpenAI
+            return self.provider_config.model
 
     def is_playlist_url(self, url: str) -> bool:
         """
@@ -286,7 +397,7 @@ class YouTubeSubtitleSummarizer:
 
     def summarize_chunk(self, chunk: str, chunk_number: int, total_chunks: int) -> str:
         """
-        Summarize a text chunk using OpenAI API
+        Summarize a text chunk using configured AI provider
 
         Args:
             chunk: Text chunk to summarize
@@ -307,7 +418,7 @@ class YouTubeSubtitleSummarizer:
 7. Make it suitable for students and learners
 
 Format your response with:
-- Main topic headers using ## 
+- Main topic headers using ##
 - Key points as bullet points with -
 - Sub-points indented with proper spacing
 - Important terms or concepts in **bold**
@@ -322,55 +433,23 @@ Focus on clarity, accuracy, and educational value."""
 Create a well-structured summary optimized for learning, using bullet points and proper markdown formatting."""
 
         try:
-            # response = self.client.chat.completions.create(
-            #     model="gpt-3.5-turbo",
-            #     messages=[
-            #         {"role": "system", "content": system_prompt},
-            #         {"role": "user", "content": user_prompt}
-            #     ],
-            #     max_tokens=1000,
-            #     temperature=0.3
-            # )
-
-            # from openai import OpenAI
-
-            # client = OpenAI(
-            #     base_url="http://localhost:11434/v1",
-            #     api_key="ollama",
-            # )
-
-            # response = client.chat.completions.create(
-            #     model="llama3.2:3b",
-            #     messages=[
-            #         {"role": "system", "content": system_prompt},
-            #         {"role": "user", "content": user_prompt},
-            #     ],
-            # )
-
-            from openai import OpenAI
-
-            client = OpenAI(
-                base_url="https://openrouter.ai/api/v1",
-                api_key=OPENROUTER_API_KEY,
-            )
-
-            response = client.chat.completions.create(
-                extra_headers={
-                    "HTTP-Referer": "https://nichsedge.github.io/digital-garden",
-                    "X-Title": "Youtube Summarizer",
-                },
-                extra_body={},
-                model="openai/gpt-oss-20b:free",
+            # Get provider-specific request kwargs
+            request_kwargs = self.provider_config.get_request_kwargs()
+            
+            # Create the API request
+            response = self.client.chat.completions.create(
+                model=self.provider_config.model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
+                **request_kwargs
             )
 
             return response.choices[0].message.content.strip()
 
         except Exception as e:
-            return f"Error summarizing chunk {chunk_number}: {str(e)}"
+            return f"Error summarizing chunk {chunk_number} with {self.provider_config.provider}: {str(e)}"
 
     def merge_summaries(self, summaries: List[str], video_title: str = "") -> str:
         """
@@ -505,16 +584,71 @@ Create a well-structured summary optimized for learning, using bullet points and
 
 def main():
     """
-    Example usage of the YouTube Subtitle Summarizer
+    Example usage of the YouTube Subtitle Summarizer with configurable providers
     """
-    # Initialize with your OpenAI API key
-    api_key = os.getenv("OPENAI_API_KEY")
-
-    summarizer = YouTubeSubtitleSummarizer(api_key)
+    print("YouTube Subtitle Summarizer - Configurable AI Providers")
+    print("=" * 60)
+    
+    # Show available providers
+    print("\nAvailable providers:")
+    for provider in ProviderConfig.PROVIDERS.keys():
+        print(f"  - {provider}")
+    
+    print("\nConfiguration options:")
+    print("1. Use environment variables (AI_PROVIDER, AI_MODEL, API_KEY)")
+    print("2. Use constructor parameters")
+    print("3. Use default settings (OpenAI)")
+    
+    # Get user preference
+    config_method = input("\nChoose configuration method (1/2/3) [1]: ").strip() or "1"
+    
+    summarizer = None
+    
+    if config_method == "1":
+        # Environment variables method
+        print("\nUsing environment variables...")
+        provider = os.getenv("AI_PROVIDER")
+        model = os.getenv("AI_MODEL")
+        
+        if provider:
+            print(f"Provider: {provider}")
+        if model:
+            print(f"Model: {model}")
+        
+        summarizer = YouTubeSubtitleSummarizer()
+        
+    elif config_method == "2":
+        # Constructor parameters method
+        print("\nUsing constructor parameters...")
+        provider = input("Enter provider (openai/openrouter/ollama) [openai]: ").strip() or "openai"
+        model = input(f"Enter model for {provider} (leave empty for default): ").strip()
+        
+        # For demo purposes, we'll use a placeholder API key
+        # In real usage, you'd set this via environment variable or pass it directly
+        api_key = os.getenv(f"{provider.upper()}_API_KEY")
+        
+        if not api_key:
+            print(f"\nWarning: {provider.upper()}_API_KEY not found in environment variables")
+            print("Please set the appropriate API key environment variable:")
+            if provider == "openai":
+                print("  export OPENAI_API_KEY=your-key")
+            elif provider == "openrouter":
+                print("  export OPENROUTER_API_KEY=your-key")
+            elif provider == "ollama":
+                print("  export OLLAMA_API_KEY=your-key")
+            
+            # Continue with demo but warn about potential failure
+            print("\nContinuing with demo (may fail without proper API key)...")
+        
+        summarizer = YouTubeSubtitleSummarizer(provider=provider, model=model, api_key=api_key)
+        
+    else:
+        # Default method
+        print("\nUsing default settings (OpenAI)...")
+        summarizer = YouTubeSubtitleSummarizer()
 
     # Input can be a video or playlist URL
-    # url = "https://www.youtube.com/watch?v=xUdCSq4W1Kk&t=33s"
-    url = input("Enter YouTube video or playlist URL: ").strip()
+    url = input("\nEnter YouTube video or playlist URL: ").strip()
 
     try:
         if summarizer.is_playlist_url(url):
