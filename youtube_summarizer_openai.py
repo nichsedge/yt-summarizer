@@ -230,22 +230,19 @@ class YouTubeSubtitleSummarizer:
             except Exception:
                 logging.debug("Auto-generated English subtitles not found or error occurred.")
 
-            # Priority 3: Auto-translated English
+            # Priority 3: First available auto-generated subtitle
             try:
                 for transcript in transcript_list:
-                    try:
-                        translated = transcript.translate("en")
+                    if transcript.is_generated:
                         logging.info(
-                            f"Found subtitles in {transcript.language_code}, translated to English"
+                            f"Found auto-generated subtitles in {transcript.language_code}"
                         )
-                        fetched = translated.fetch()
+                        fetched = transcript.fetch()
                         fetched_list = list(fetched) if not isinstance(fetched, list) else fetched
                         return self._format_transcript(fetched_list)
-                    except Exception:
-                        logging.debug(f"Could not translate {transcript.language_code} to English.")
-                        continue
+                logging.debug("No auto-generated subtitles found.")
             except Exception:
-                logging.debug("No translatable subtitles found or error occurred during translation.")
+                logging.debug("Error accessing auto-generated subtitles.")
 
             raise Exception("No suitable English subtitles found")
 
