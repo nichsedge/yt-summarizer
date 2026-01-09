@@ -12,6 +12,7 @@ import json
 @dataclass
 class ProviderSettings:
     """Settings for an AI provider."""
+
     default_model: str
     base_url: Optional[str] = None
     api_key_env: str = ""
@@ -22,6 +23,7 @@ class ProviderSettings:
 @dataclass
 class ProcessingSettings:
     """Settings for transcript processing."""
+
     max_tokens_per_chunk: int = 3000
     language_priority: list = field(default_factory=lambda: ["en"])
     prefer_manual_transcripts: bool = True
@@ -30,6 +32,7 @@ class ProcessingSettings:
 @dataclass
 class OutputSettings:
     """Settings for output generation."""
+
     output_dir: str = "./output"
     create_dir_if_missing: bool = True
     date_format: str = "%Y-%m-%d %H:%M:%S"
@@ -40,26 +43,27 @@ class Settings:
     """Main configuration settings."""
 
     # Provider configurations
-    providers: Dict[str, ProviderSettings] = field(default_factory=lambda: {
-        "openai": ProviderSettings(
-            default_model="gpt-3.5-turbo",
-            api_key_env="OPENAI_API_KEY"
-        ),
-        "openrouter": ProviderSettings(
-            default_model="openai/gpt-oss-20b:free",
-            base_url="https://openrouter.ai/api/v1",
-            api_key_env="OPENROUTER_API_KEY",
-            extra_headers={
-                "HTTP-Referer": "https://nichsedge.github.io/digital-garden",
-                "X-Title": "Youtube Summarizer"
-            }
-        ),
-        "ollama": ProviderSettings(
-            default_model="llama3.2:3b",
-            base_url="http://localhost:11434/v1",
-            api_key_env="OLLAMA_API_KEY"
-        )
-    })
+    providers: Dict[str, ProviderSettings] = field(
+        default_factory=lambda: {
+            "openai": ProviderSettings(
+                default_model="gpt-3.5-turbo", api_key_env="OPENAI_API_KEY"
+            ),
+            "openrouter": ProviderSettings(
+                default_model="openai/gpt-oss-20b:free",
+                base_url="https://openrouter.ai/api/v1",
+                api_key_env="OPENROUTER_API_KEY",
+                extra_headers={
+                    "HTTP-Referer": "https://nichsedge.github.io/digital-garden",
+                    "X-Title": "Youtube Summarizer",
+                },
+            ),
+            "ollama": ProviderSettings(
+                default_model="llama3.2:3b",
+                base_url="http://localhost:11434/v1",
+                api_key_env="OLLAMA_API_KEY",
+            ),
+        }
+    )
 
     # Processing settings
     processing: ProcessingSettings = field(default_factory=ProcessingSettings)
@@ -103,20 +107,20 @@ Create a well-structured summary optimized for learning, using bullet points and
         if not config_path.exists():
             return cls()
 
-        with open(config_path, 'r') as f:
+        with open(config_path, "r") as f:
             data = json.load(f)
 
         # Convert dictionaries to appropriate dataclass instances
         providers = {}
-        for name, provider_data in data.get('providers', {}).items():
+        for name, provider_data in data.get("providers", {}).items():
             providers[name] = ProviderSettings(**provider_data)
-        data['providers'] = providers
+        data["providers"] = providers
 
-        if 'processing' in data:
-            data['processing'] = ProcessingSettings(**data['processing'])
+        if "processing" in data:
+            data["processing"] = ProcessingSettings(**data["processing"])
 
-        if 'output' in data:
-            data['output'] = OutputSettings(**data['output'])
+        if "output" in data:
+            data["output"] = OutputSettings(**data["output"])
 
         return cls(**data)
 
@@ -126,31 +130,32 @@ Create a well-structured summary optimized for learning, using bullet points and
 
         # Convert dataclasses to dictionaries for JSON serialization
         data = {
-            'providers': {
+            "providers": {
                 name: {
-                    'default_model': p.default_model,
-                    'base_url': p.base_url,
-                    'api_key_env': p.api_key_env,
-                    'extra_headers': p.extra_headers,
-                    'extra_body': p.extra_body
-                } for name, p in self.providers.items()
+                    "default_model": p.default_model,
+                    "base_url": p.base_url,
+                    "api_key_env": p.api_key_env,
+                    "extra_headers": p.extra_headers,
+                    "extra_body": p.extra_body,
+                }
+                for name, p in self.providers.items()
             },
-            'processing': {
-                'max_tokens_per_chunk': self.processing.max_tokens_per_chunk,
-                'language_priority': self.processing.language_priority,
-                'prefer_manual_transcripts': self.processing.prefer_manual_transcripts
+            "processing": {
+                "max_tokens_per_chunk": self.processing.max_tokens_per_chunk,
+                "language_priority": self.processing.language_priority,
+                "prefer_manual_transcripts": self.processing.prefer_manual_transcripts,
             },
-            'output': {
-                'output_dir': self.output.output_dir,
-                'create_dir_if_missing': self.output.create_dir_if_missing,
-                'date_format': self.output.date_format
+            "output": {
+                "output_dir": self.output.output_dir,
+                "create_dir_if_missing": self.output.create_dir_if_missing,
+                "date_format": self.output.date_format,
             },
-            'default_provider': self.default_provider,
-            'system_prompt': self.system_prompt,
-            'user_prompt_template': self.user_prompt_template
+            "default_provider": self.default_provider,
+            "system_prompt": self.system_prompt,
+            "user_prompt_template": self.user_prompt_template,
         }
 
-        with open(config_path, 'w') as f:
+        with open(config_path, "w") as f:
             json.dump(data, f, indent=2)
 
     def get_provider_setting(self, provider: str) -> ProviderSettings:

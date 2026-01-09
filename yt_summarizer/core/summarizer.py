@@ -15,15 +15,20 @@ from ..utils import (
     get_video_title_from_html,
     extract_playlist_video_ids,
     is_playlist_url,
-    TokenCounter
+    TokenCounter,
 )
 
 
 class YouTubeSubtitleSummarizer:
     """Main class for summarizing YouTube videos from subtitles."""
 
-    def __init__(self, provider: str = None, model: str = None, api_key: str = None,
-                 openai_api_key: str = None):
+    def __init__(
+        self,
+        provider: str = None,
+        model: str = None,
+        api_key: str = None,
+        openai_api_key: str = None,
+    ):
         """
         Initialize the YouTube Subtitle Summarizer.
 
@@ -39,18 +44,26 @@ class YouTubeSubtitleSummarizer:
         # Handle deprecated openai_api_key parameter
         if openai_api_key and not api_key:
             api_key = openai_api_key
-            logging.warning("openai_api_key parameter is deprecated. Use api_key instead.")
+            logging.warning(
+                "openai_api_key parameter is deprecated. Use api_key instead."
+            )
 
         try:
             # Initialize provider configuration
-            self.provider_config = ProviderConfig(provider=provider, model=model, api_key=api_key)
+            self.provider_config = ProviderConfig(
+                provider=provider, model=model, api_key=api_key
+            )
 
             # Initialize components
             self.transcript_processor = TranscriptProcessor()
             self.token_counter = TokenCounter()
-            self.summary_generator = SummaryGenerator(self.provider_config, self.token_counter)
+            self.summary_generator = SummaryGenerator(
+                self.provider_config, self.token_counter
+            )
 
-            logging.info(f"Initialized with {self.provider_config.provider}/{self.provider_config.model}")
+            logging.info(
+                f"Initialized with {self.provider_config.provider}/{self.provider_config.model}"
+            )
         except Exception as e:
             raise YouTubeSummarizerError(f"Failed to initialize summarizer: {str(e)}")
 
@@ -86,8 +99,7 @@ class YouTubeSubtitleSummarizer:
             # Split into chunks
             logging.info(f"Splitting into chunks...")
             chunks = self.token_counter.split_text_into_chunks(
-                subtitles,
-                settings.processing.max_tokens_per_chunk
+                subtitles, settings.processing.max_tokens_per_chunk
             )
             logging.info(f"Split into {len(chunks)} chunks")
 
@@ -101,10 +113,14 @@ class YouTubeSubtitleSummarizer:
 
             # Merge summaries
             logging.info(f"Merging summaries...")
-            final_document = self.summary_generator.merge_summaries(summaries, video_title)
+            final_document = self.summary_generator.merge_summaries(
+                summaries, video_title
+            )
 
             # Save to file
-            output_file = self.summary_generator.save_summary(final_document, video_title)
+            output_file = self.summary_generator.save_summary(
+                final_document, video_title
+            )
             logging.info(f"Complete! Summary saved to: {output_file}")
             return output_file
 

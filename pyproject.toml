@@ -30,10 +30,10 @@ classifiers = [
 keywords = ["youtube", "summarizer", "ai", "transcript", "video"]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/yt-summarizer"
-Repository = "https://github.com/yourusername/yt-summarizer.git"
-Documentation = "https://github.com/yourusername/yt-summarizer#readme"
-"Bug Tracker" = "https://github.com/yourusername/yt-summarizer/issues"
+Homepage = "https://github.com/nichsedge/yt-summarizer"
+Repository = "https://github.com/nichsedge/yt-summarizer.git"
+Documentation = "https://github.com/nichsedge/yt-summarizer#readme"
+"Bug Tracker" = "https://github.com/nichsedge/yt-summarizer/issues"
 
 [project.scripts]
 yt-summarizer = "yt_summarizer.cli:main"
@@ -49,8 +49,8 @@ dev = [
     "hatchling>=1.25.0",
 ]
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "pytest>=8.0.0",
     "pytest-cov>=4.0.0",
     "pytest-mock>=3.10.0",

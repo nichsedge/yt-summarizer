@@ -8,7 +8,7 @@ from .helpers import (
     is_playlist_url,
     extract_video_id,
     get_video_title_from_html,
-    extract_playlist_video_ids
+    extract_playlist_video_ids,
 )
 from .token_counter import TokenCounter
 
@@ -19,5 +19,5 @@ __all__ = [
     "extract_video_id",
     "get_video_title_from_html",
     "extract_playlist_video_ids",
-    "TokenCounter"
+    "TokenCounter",
 ]

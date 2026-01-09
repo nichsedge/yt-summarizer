@@ -6,9 +6,11 @@ This script:
 1. Creates a sample config file based on your current environment setup
 2. Shows how to use the new CLI instead of the interactive interface
 """
+
 import os
 import json
 from pathlib import Path
+
 
 def create_config_from_env():
     """Create a config file based on current environment variables."""
@@ -17,7 +19,7 @@ def create_config_from_env():
         "providers": {
             "openai": {
                 "default_model": "gpt-3.5-turbo",
-                "api_key_env": "OPENAI_API_KEY"
+                "api_key_env": "OPENAI_API_KEY",
             },
             "openrouter": {
                 "default_model": "openai/gpt-oss-20b:free",
@@ -25,24 +27,24 @@ def create_config_from_env():
                 "api_key_env": "OPENROUTER_API_KEY",
                 "extra_headers": {
                     "HTTP-Referer": "https://nichsedge.github.io/digital-garden",
-                    "X-Title": "Youtube Summarizer"
-                }
+                    "X-Title": "Youtube Summarizer",
+                },
             },
             "ollama": {
                 "default_model": "llama3.2:3b",
                 "base_url": "http://localhost:11434/v1",
-                "api_key_env": "OLLAMA_API_KEY"
-            }
+                "api_key_env": "OLLAMA_API_KEY",
+            },
         },
         "processing": {
             "max_tokens_per_chunk": 3000,
             "language_priority": ["en"],
-            "prefer_manual_transcripts": True
+            "prefer_manual_transcripts": True,
         },
         "output": {
             "output_dir": "./output",
             "create_dir_if_missing": True,
-            "date_format": "%Y-%m-%d %H:%M:%S"
+            "date_format": "%Y-%m-%d %H:%M:%S",
         },
         "system_prompt": """You are an expert at creating educational summaries. Your task is to:
 
@@ -66,14 +68,17 @@ Focus on clarity, accuracy, and educational value.""",
 
 {text}
 
-Create a well-structured summary optimized for learning, using bullet points and proper markdown formatting."""
+Create a well-structured summary optimized for learning, using bullet points and proper markdown formatting.""",
     }
 
     # Customize AI model if set in environment
     if os.getenv("AI_MODEL"):
-        config["providers"][config["default_provider"]]["default_model"] = os.getenv("AI_MODEL")
+        config["providers"][config["default_provider"]]["default_model"] = os.getenv(
+            "AI_MODEL"
+        )
 
     return config
+
 
 def main():
     print("YouTube Summarizer Migration to v0.2")
@@ -83,7 +88,7 @@ def main():
     config = create_config_from_env()
 
     config_path = Path("yt-summarizer-config.json")
-    with open(config_path, 'w') as f:
+    with open(config_path, "w") as f:
         json.dump(config, f, indent=2)
 
     print(f"✓ Configuration file created: {config_path}")
@@ -98,13 +103,17 @@ def main():
 
     print("\n3. New usage examples:")
     print("   # Using the config file")
-    print(f"   yt-summarizer --config {config_path} https://www.youtube.com/watch?v=VIDEO_ID")
+    print(
+        f"   yt-summarizer --config {config_path} https://www.youtube.com/watch?v=VIDEO_ID"
+    )
     print("")
     print("   # Using environment variables (same as before)")
     print("   yt-summarizer https://www.youtube.com/watch?v=VIDEO_ID")
     print("")
     print("   # Specifying provider and model")
-    print("   yt-summarizer --provider openai --model gpt-4 https://www.youtube.com/watch?v=VIDEO_ID")
+    print(
+        "   yt-summarizer --provider openai --model gpt-4 https://www.youtube.com/watch?v=VIDEO_ID"
+    )
     print("")
     print("   # List available providers")
     print("   yt-summarizer --list-providers")
@@ -130,6 +139,7 @@ def main():
 
     print("\n✓ Migration complete! You can now start using the new features.")
     print(f"\nYour configuration file '{config_path}' is ready to use.")
+
 
 if __name__ == "__main__":
     main()

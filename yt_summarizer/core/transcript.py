@@ -42,10 +42,15 @@ class TranscriptProcessor:
             for lang_code in self.settings.language_priority:
                 try:
                     transcript = transcript_list.find_transcript([lang_code])
-                    if self.settings.prefer_manual_transcripts and not transcript.is_generated:
+                    if (
+                        self.settings.prefer_manual_transcripts
+                        and not transcript.is_generated
+                    ):
                         logging.info(f"Found official {lang_code} subtitles")
                         fetched = transcript.fetch()
-                        fetched_list = list(fetched) if not isinstance(fetched, list) else fetched
+                        fetched_list = (
+                            list(fetched) if not isinstance(fetched, list) else fetched
+                        )
                         return self._format_transcript(fetched_list)
                 except Exception:
                     logging.debug(f"Official {lang_code} subtitles not found.")
@@ -56,7 +61,9 @@ class TranscriptProcessor:
                     transcript = transcript_list.find_generated_transcript([lang_code])
                     logging.info(f"Found auto-generated {lang_code} subtitles")
                     fetched = transcript.fetch()
-                    fetched_list = list(fetched) if not isinstance(fetched, list) else fetched
+                    fetched_list = (
+                        list(fetched) if not isinstance(fetched, list) else fetched
+                    )
                     return self._format_transcript(fetched_list)
                 except Exception:
                     logging.debug(f"Auto-generated {lang_code} subtitles not found.")
@@ -69,7 +76,9 @@ class TranscriptProcessor:
                             f"Found auto-generated subtitles in {transcript.language_code}"
                         )
                         fetched = transcript.fetch()
-                        fetched_list = list(fetched) if not isinstance(fetched, list) else fetched
+                        fetched_list = (
+                            list(fetched) if not isinstance(fetched, list) else fetched
+                        )
                         return self._format_transcript(fetched_list)
                 logging.debug("No auto-generated subtitles found.")
             except Exception:

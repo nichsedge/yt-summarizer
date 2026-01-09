@@ -27,7 +27,9 @@ class ProviderConfig:
             ProviderError: If provider configuration is invalid
         """
         # Get provider from constructor or environment
-        self.provider = provider or os.getenv("AI_PROVIDER") or settings.default_provider
+        self.provider = (
+            provider or os.getenv("AI_PROVIDER") or settings.default_provider
+        )
 
         # Validate provider
         try:
@@ -36,7 +38,9 @@ class ProviderConfig:
             raise ConfigurationError(str(e))
 
         # Get model from constructor or environment or default
-        self.model = model or os.getenv("AI_MODEL") or self.provider_settings.default_model
+        self.model = (
+            model or os.getenv("AI_MODEL") or self.provider_settings.default_model
+        )
 
         # Get API key from constructor or environment
         self.api_key = api_key or os.getenv(self.provider_settings.api_key_env)
@@ -73,7 +77,9 @@ class ProviderConfig:
 
             return OpenAI(**client_kwargs)
         except Exception as e:
-            raise ProviderError(f"Failed to create client for {self.provider}: {str(e)}")
+            raise ProviderError(
+                f"Failed to create client for {self.provider}: {str(e)}"
+            )
 
     def get_request_kwargs(self) -> Dict[str, Any]:
         """Get additional kwargs for API requests."""

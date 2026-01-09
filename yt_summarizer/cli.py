@@ -19,8 +19,8 @@ def setup_logging(verbose: bool = False):
     level = logging.DEBUG if verbose else logging.INFO
     logging.basicConfig(
         level=level,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
     )
 
 
@@ -56,53 +56,34 @@ Examples:
   %(prog)s --config config.json https://www.youtube.com/watch?v=VIDEO_ID
   %(prog)s --list-providers
   %(prog)s --create-config config.json
-        """
+        """,
     )
 
     # Arguments
-    parser.add_argument(
-        "url",
-        nargs="?",
-        help="YouTube video or playlist URL"
-    )
+    parser.add_argument("url", nargs="?", help="YouTube video or playlist URL")
 
     # Options
     parser.add_argument(
-        "--provider", "-p",
-        help="AI provider (openai, openrouter, ollama)"
+        "--provider", "-p", help="AI provider (openai, openrouter, ollama)"
     )
+    parser.add_argument("--model", "-m", help="Model name for the provider")
+    parser.add_argument("--api-key", "-k", help="API key for authentication")
     parser.add_argument(
-        "--model", "-m",
-        help="Model name for the provider"
-    )
-    parser.add_argument(
-        "--api-key", "-k",
-        help="API key for authentication"
-    )
-    parser.add_argument(
-        "--config", "-c",
-        type=Path,
-        help="Path to configuration file (JSON format)"
+        "--config", "-c", type=Path, help="Path to configuration file (JSON format)"
     )
     parser.add_argument(
         "--list-providers",
         action="store_true",
-        help="List available providers and exit"
+        help="List available providers and exit",
     )
     parser.add_argument(
-        "--create-config",
-        type=Path,
-        help="Create a sample configuration file and exit"
+        "--create-config", type=Path, help="Create a sample configuration file and exit"
     )
     parser.add_argument(
-        "--verbose", "-v",
-        action="store_true",
-        help="Enable verbose logging"
+        "--verbose", "-v", action="store_true", help="Enable verbose logging"
     )
     parser.add_argument(
-        "--version",
-        action="version",
-        version=f"%(prog)s {__version__}"
+        "--version", action="version", version=f"%(prog)s {__version__}"
     )
 
     args = parser.parse_args()
@@ -131,9 +112,7 @@ Examples:
     try:
         # Initialize summarizer
         summarizer = YouTubeSubtitleSummarizer(
-            provider=args.provider,
-            model=args.model,
-            api_key=args.api_key
+            provider=args.provider, model=args.model, api_key=args.api_key
         )
 
         # Process URL
@@ -170,6 +149,7 @@ Examples:
         logging.error(f"Unexpected error: {str(e)}")
         if args.verbose:
             import traceback
+
             traceback.print_exc()
         return 1
 

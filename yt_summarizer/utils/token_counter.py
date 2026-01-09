@@ -31,7 +31,9 @@ class TokenCounter:
         """
         return len(self.encoding.encode(text))
 
-    def split_text_into_chunks(self, text: str, max_tokens_per_chunk: int = 3000) -> List[str]:
+    def split_text_into_chunks(
+        self, text: str, max_tokens_per_chunk: int = 3000
+    ) -> List[str]:
         """
         Split text into chunks suitable for GPT processing.
 
@@ -44,6 +46,7 @@ class TokenCounter:
         """
         # Split by sentences first
         import re
+
         sentences = re.split(r"(?<=[.!?])\s+", text)
 
         chunks = []
@@ -65,10 +68,7 @@ class TokenCounter:
                         test_word_chunk = (
                             temp_chunk + " " + word if temp_chunk else word
                         )
-                        if (
-                            self.count_tokens(test_word_chunk)
-                            > max_tokens_per_chunk
-                        ):
+                        if self.count_tokens(test_word_chunk) > max_tokens_per_chunk:
                             if temp_chunk:
                                 chunks.append(temp_chunk.strip())
                                 temp_chunk = word

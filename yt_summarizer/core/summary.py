@@ -43,9 +43,7 @@ class SummaryGenerator:
         """
         system_prompt = self.settings.system_prompt
         user_prompt = self.settings.user_prompt_template.format(
-            chunk_number=chunk_number,
-            total_chunks=total_chunks,
-            text=chunk
+            chunk_number=chunk_number, total_chunks=total_chunks, text=chunk
         )
 
         try:
@@ -59,7 +57,7 @@ class SummaryGenerator:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
-                **request_kwargs
+                **request_kwargs,
             )
 
             return response.choices[0].message.content.strip()
@@ -123,7 +121,9 @@ class SummaryGenerator:
         ensure_output_dir(self.settings.output.output_dir)
 
         # Generate output filename
-        output_file = f"{self.settings.output.output_dir}/{sanitize_filename(video_title)}.md"
+        output_file = (
+            f"{self.settings.output.output_dir}/{sanitize_filename(video_title)}.md"
+        )
 
         # Save to file
         with open(output_file, "w", encoding="utf-8") as f:

@@ -11,5 +11,5 @@ __all__ = [
     "ProviderConfig",
     "TranscriptProcessor",
     "SummaryGenerator",
-    "YouTubeSubtitleSummarizer"
+    "YouTubeSubtitleSummarizer",
 ]

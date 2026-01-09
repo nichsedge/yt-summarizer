@@ -20,5 +20,5 @@ __all__ = [
     "YouTubeSubtitleSummarizer",
     "ProviderConfig",
     "TranscriptProcessor",
-    "SummaryGenerator"
+    "SummaryGenerator",
 ]

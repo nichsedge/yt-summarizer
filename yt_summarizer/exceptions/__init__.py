@@ -8,7 +8,7 @@ from .custom_exceptions import (
     VideoProcessingError,
     PlaylistError,
     ConfigurationError,
-    ProviderError
+    ProviderError,
 )
 
 __all__ = [
@@ -17,5 +17,5 @@ __all__ = [
     "VideoProcessingError",
     "PlaylistError",
     "ConfigurationError",
-    "ProviderError"
+    "ProviderError",
 ]

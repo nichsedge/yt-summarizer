@@ -19,12 +19,12 @@ def sanitize_filename(filename: str) -> str:
         Sanitized filename
     """
     # Remove invalid characters and replace spaces with underscores
-    sanitized = re.sub(r'[<>:"/\\|?*]', '', filename)
-    sanitized = sanitized.replace(' ', '_')
+    sanitized = re.sub(r'[<>:"/\\|?*]', "", filename)
+    sanitized = sanitized.replace(" ", "_")
     # Remove consecutive underscores
-    sanitized = re.sub(r'_+', '_', sanitized)
+    sanitized = re.sub(r"_+", "_", sanitized)
     # Remove leading/trailing underscores
-    sanitized = sanitized.strip('_')
+    sanitized = sanitized.strip("_")
     return sanitized
 
 
@@ -78,7 +78,9 @@ def extract_video_id(url: str) -> str:
 
     # Guard: don't allow playlist URL here
     if is_playlist_url(url):
-        raise ValueError("Provided URL is a playlist. Use process_playlist() for playlists.")
+        raise ValueError(
+            "Provided URL is a playlist. Use process_playlist() for playlists."
+        )
 
     if parsed_url.hostname == "youtu.be":
         return parsed_url.path[1:]
@@ -146,7 +148,7 @@ def extract_playlist_video_ids(playlist_url: str, timeout: int = 30) -> list:
 
     headers = {
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-                      "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+        "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
     }
     resp = requests.get(playlist_url, headers=headers, timeout=timeout)
     resp.raise_for_status()
@@ -163,5 +165,8 @@ def extract_playlist_video_ids(playlist_url: str, timeout: int = 30) -> list:
 
     if not ordered:
         import logging
-        logging.warning("No video IDs found in playlist HTML. The page might require JS to render items.")
+
+        logging.warning(
+            "No video IDs found in playlist HTML. The page might require JS to render items."
+        )
     return ordered

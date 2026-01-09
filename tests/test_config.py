@@ -5,7 +5,12 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from yt_summarizer.config import Settings, ProviderSettings, ProcessingSettings, OutputSettings
+from yt_summarizer.config import (
+    Settings,
+    ProviderSettings,
+    ProcessingSettings,
+    OutputSettings,
+)
 
 
 class TestProviderSettings:
@@ -16,7 +21,7 @@ class TestProviderSettings:
         settings = ProviderSettings(
             default_model="gpt-4",
             base_url="https://api.openai.com/v1",
-            api_key_env="OPENAI_API_KEY"
+            api_key_env="OPENAI_API_KEY",
         )
 
         assert settings.default_model == "gpt-4"
@@ -57,7 +62,7 @@ class TestSettings:
     def test_save_and_load(self):
         """Test saving and loading settings."""
         # Create temporary file
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             config_path = Path(f.name)
 
         try:

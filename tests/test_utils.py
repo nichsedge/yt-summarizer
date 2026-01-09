@@ -5,7 +5,7 @@ from yt_summarizer.utils import (
     sanitize_filename,
     is_playlist_url,
     extract_video_id,
-    extract_playlist_video_ids
+    extract_playlist_video_ids,
 )
 
 
@@ -30,7 +30,10 @@ class TestSanitizeFilename:
         assert sanitize_filename("") == ""
         assert sanitize_filename("___") == ""
         assert sanitize_filename("_test_file_") == "test_file"
-        assert sanitize_filename('test"file_with/invalid\\chars') == "testfile_withinvalidchars"
+        assert (
+            sanitize_filename('test"file_with/invalid\\chars')
+            == "testfile_withinvalidchars"
+        )
 
 
 class TestURLHelpers:
@@ -52,7 +55,9 @@ class TestURLHelpers:
     def test_extract_video_id(self):
         """Test video ID extraction."""
         # Standard watch URL
-        assert extract_video_id("https://www.youtube.com/watch?v=VIDEO_ID") == "VIDEO_ID"
+        assert (
+            extract_video_id("https://www.youtube.com/watch?v=VIDEO_ID") == "VIDEO_ID"
+        )
         assert extract_video_id("https://youtube.com/watch?v=VIDEO_ID") == "VIDEO_ID"
 
         # Short URL
@@ -62,9 +67,10 @@ class TestURLHelpers:
         assert extract_video_id("https://www.youtube.com/embed/VIDEO_ID") == "VIDEO_ID"
 
         # With additional parameters
-        assert extract_video_id(
-            "https://www.youtube.com/watch?v=VIDEO_ID&t=30s"
-        ) == "VIDEO_ID"
+        assert (
+            extract_video_id("https://www.youtube.com/watch?v=VIDEO_ID&t=30s")
+            == "VIDEO_ID"
+        )
 
         # Invalid URLs
         with pytest.raises(ValueError):
