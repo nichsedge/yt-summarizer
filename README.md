@@ -24,7 +24,7 @@ Install [uv](https://docs.astral.sh/uv/getting-started/installation/) - the mode
 ### From Source
 
 ```bash
-git clone https://github.com/yourusername/yt-summarizer.git
+git clone https://github.com/nichsedge/yt-summarizer.git
 cd yt-summarizer
 uv sync
 ```
@@ -221,7 +221,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ### Development Setup
 
 ```bash
-git clone https://github.com/yourusername/yt-summarizer.git
+git clone https://github.com/nichsedge/yt-summarizer.git
 cd yt-summarizer
 
 # Install with dev dependencies
@@ -319,6 +319,6 @@ uv cache clean
 
 If you encounter issues or have questions:
 
-1. Check the [Issues](https://github.com/yourusername/yt-summarizer/issues) page
+1. Check the [Issues](https://github.com/nichsedge/yt-summarizer/issues) page
 2. Create a new issue with details about your problem
 3. Include verbose logs (`--verbose`) when reporting issues
