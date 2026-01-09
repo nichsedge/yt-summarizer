@@ -1,6 +1,10 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "yt-summarizer"
-version = "0.1.0"
+version = "0.2.0"
 requires-python = ">=3.13"
 dependencies = [
     "openai>=1.100.2",
@@ -8,3 +12,94 @@ dependencies = [
     "tiktoken>=0.11.0",
     "youtube-transcript-api>=1.2.2",
 ]
+description = "Generate AI-powered summaries from YouTube video subtitles"
+readme = "README.md"
+authors = [
+    {name = "YouTube Summarizer Team"},
+]
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+keywords = ["youtube", "summarizer", "ai", "transcript", "video"]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/yt-summarizer"
+Repository = "https://github.com/yourusername/yt-summarizer.git"
+Documentation = "https://github.com/yourusername/yt-summarizer#readme"
+"Bug Tracker" = "https://github.com/yourusername/yt-summarizer/issues"
+
+[project.scripts]
+yt-summarizer = "yt_summarizer.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.10.0",
+    "black>=24.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.5.0",
+    "hatchling>=1.25.0",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.10.0",
+    "black>=24.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.5.0",
+    "hatchling>=1.25.0",
+]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --strict-markers --strict-config"
+testpaths = ["tests"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py313"]
+include = '\.pyi?$'
+
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "W", "I", "N", "B", "C90", "UP"]
+target-version = "py313"
+
+[tool.ruff.lint]
+# Enable pycodestyle (E), Pyflakes (F), and other rules
+select = ["E", "F", "W", "I", "N", "B", "C90", "UP"]
+ignore = []
+
+# Allow autofix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = [
+    "youtube_transcript_api.*",
+    "requests.*",
+    "tiktoken.*",
+    "openai.*",
+]
+ignore_missing_imports = true
