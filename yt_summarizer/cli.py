@@ -105,9 +105,25 @@ Examples:
         global settings
         settings = Settings.from_file(args.config)
 
-    # Validate arguments
-    if not args.url:
-        parser.error("YouTube URL is required")
+    # Process URL
+    url = args.url
+    if not url:
+        # Handle special commands that don't need a URL
+        if args.list_providers or args.create_config:
+            return 0 # Already handled above, but just in case
+            
+        try:
+            url = input("Enter YouTube URL: ").strip()
+        except EOFError:
+            print() # New line after Ctrl+D
+            return 0
+        except KeyboardInterrupt:
+            print() # New line after Ctrl+C
+            return 1
+            
+        if not url:
+            logging.error("YouTube URL is required")
+            return 1
 
     try:
         # Initialize summarizer
@@ -116,13 +132,13 @@ Examples:
         )
 
         # Process URL
-        if summarizer.is_playlist_url(args.url):
-            outputs = summarizer.process_playlist(args.url)
+        if summarizer.is_playlist_url(url):
+            outputs = summarizer.process_playlist(url)
             logging.info(f"🎉 Success! Generated {len(outputs)} files")
             for output in outputs:
                 print(f"  - {output}")
         else:
-            result_file = summarizer.process_video(args.url)
+            result_file = summarizer.process_video(url)
             logging.info(f"🎉 Success! Your summary is ready: {result_file}")
 
             # Optionally display preview
