@@ -46,7 +46,7 @@ class TranscriptProcessor:
                         self.settings.prefer_manual_transcripts
                         and not transcript.is_generated
                     ):
-                        logging.info(f"Found official {lang_code} subtitles")
+                        logging.debug(f"Found official {lang_code} subtitles")
                         fetched = transcript.fetch()
                         fetched_list = (
                             list(fetched) if not isinstance(fetched, list) else fetched
@@ -59,7 +59,7 @@ class TranscriptProcessor:
             for lang_code in self.settings.language_priority:
                 try:
                     transcript = transcript_list.find_generated_transcript([lang_code])
-                    logging.info(f"Found auto-generated {lang_code} subtitles")
+                    logging.debug(f"Found auto-generated {lang_code} subtitles")
                     fetched = transcript.fetch()
                     fetched_list = (
                         list(fetched) if not isinstance(fetched, list) else fetched
@@ -72,7 +72,7 @@ class TranscriptProcessor:
             try:
                 for transcript in transcript_list:
                     if transcript.is_generated:
-                        logging.info(
+                        logging.debug(
                             f"Found auto-generated subtitles in {transcript.language_code}"
                         )
                         fetched = transcript.fetch()

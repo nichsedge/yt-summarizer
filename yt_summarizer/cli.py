@@ -132,14 +132,13 @@ Examples:
         )
 
         # Process URL
-        if summarizer.is_playlist_url(url):
+        from .utils import is_playlist_url
+        if is_playlist_url(url):
             outputs = summarizer.process_playlist(url)
-            logging.info(f"🎉 Success! Generated {len(outputs)} files")
-            for output in outputs:
-                print(f"  - {output}")
+            logging.info(f"Done! {len(outputs)} summaries generated.")
         else:
             result_file = summarizer.process_video(url)
-            logging.info(f"🎉 Success! Your summary is ready: {result_file}")
+            logging.info(f"Done! Summary saved to: {result_file}")
 
             # Optionally display preview
             if not args.verbose:

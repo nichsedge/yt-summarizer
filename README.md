@@ -54,24 +54,26 @@ export OLLAMA_API_KEY="your-ollama-api-key"
 
 ### 2. Run the Summarizer
 
-```bash
-# Activate the virtual environment (if installed from source)
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+The easiest way to run the summarizer is using `uv run`. This will automatically handle the environment and dependencies.
 
+```bash
 # Summarize a single video
-yt-summarizer https://www.youtube.com/watch?v=VIDEO_ID
+uv run yt-summarizer https://www.youtube.com/watch?v=VIDEO_ID
 
 # Use a specific provider
-yt-summarizer --provider openai --model gpt-4 https://www.youtube.com/watch?v=VIDEO_ID
+uv run yt-summarizer --provider openai --model gpt-4 https://www.youtube.com/watch?v=VIDEO_ID
 
 # Summarize a playlist
-yt-summarizer https://www.youtube.com/playlist?list=PLAYLIST_ID
+uv run yt-summarizer https://www.youtube.com/playlist?list=PLAYLIST_ID
 
 # Use verbose logging
-yt-summarizer --verbose https://www.youtube.com/watch?v=VIDEO_ID
+uv run yt-summarizer --verbose https://www.youtube.com/watch?v=VIDEO_ID
+```
 
-# Or run directly with uv (no activation needed)
-uv run yt-summarizer https://www.youtube.com/watch?v=VIDEO_ID
+You can also run it via the `main.py` entry point:
+
+```bash
+uv run python main.py https://www.youtube.com/watch?v=VIDEO_ID
 ```
 
 ## Configuration
@@ -233,15 +235,14 @@ uv add --dev pytest pytest-cov pytest-mock black ruff mypy
 
 ### Running Tests
 
+Use `uv run` to execute tests with `pytest`:
+
 ```bash
 # Run all tests
 uv run pytest
 
 # Run with coverage
 uv run pytest --cov=yt_summarizer --cov-report=html
-
-# Or use the Makefile
-make test
 ```
 
 ### Code Style
@@ -256,6 +257,12 @@ This project uses:
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Changelog
+
+### v0.2.1
+- Cleaned up codebase and removed legacy monolithic scripts
+- Reduced logging verbosity for a cleaner CLI experience
+- Simplified project structure with a clean `main.py` entry point
+- Standardized documentation to use `uv run`
 
 ### v0.2.0
 - Refactored into modular package structure
