@@ -24,27 +24,21 @@ def sanitize_filename(filename: str, max_length: int = 200) -> str:
     # Decode HTML entities (e.g., &#39; -> ')
     sanitized = html.unescape(filename)
 
-    # Remove control characters and non-printing whitespace
-    sanitized = re.sub(r"[\x00-\x1F\x7F-\x9F]", "", sanitized)
+    # Keep only alphanumeric and spaces, replace others with underscores
+    sanitized = re.sub(r"[^A-Za-z0-9\s]", "_", sanitized)
 
-    # Remove invalid filesystem characters
-    sanitized = re.sub(r'[<>:"/\\|?*]', "", sanitized)
+    # Remove consecutive underscores
+    sanitized = re.sub(r"_+", "_", sanitized)
 
-    # Replace various whitespace with single space
-    sanitized = re.sub(r"[\s\xa0\u2000-\u200B\u2028\u2029\u3000]+", " ", sanitized)
+    # Replace whitespace with underscores
+    sanitized = re.sub(r"\s+", "_", sanitized)
 
-    # Trim and replace remaining spaces with underscores
-    sanitized = sanitized.strip().replace(" ", "_")
-
-    # Remove consecutive underscores and other separators
-    sanitized = re.sub(r"[-._]+", "_", sanitized)
-
-    # Remove leading/trailing underscores and hyphens
-    sanitized = sanitized.strip("_-")
+    # Remove leading/trailing underscores
+    sanitized = sanitized.strip("_")
 
     # Limit filename length (before extension)
     if len(sanitized) > max_length:
-        sanitized = sanitized[:max_length].rstrip("_-")
+        sanitized = sanitized[:max_length].rstrip("_")
 
     return sanitized or "untitled"
 
