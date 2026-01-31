@@ -8,24 +8,45 @@ from typing import Set
 from urllib.parse import urlparse, parse_qs
 
 
-def sanitize_filename(filename: str) -> str:
+def sanitize_filename(filename: str, max_length: int = 200) -> str:
     """
     Sanitize filename to remove invalid characters.
 
     Args:
         filename: Original filename
+        max_length: Maximum length for filename (default: 200)
 
     Returns:
         Sanitized filename
     """
-    # Remove invalid characters and replace spaces with underscores
-    sanitized = re.sub(r'[<>:"/\\|?*]', "", filename)
-    sanitized = sanitized.replace(" ", "_")
-    # Remove consecutive underscores
-    sanitized = re.sub(r"_+", "_", sanitized)
-    # Remove leading/trailing underscores
-    sanitized = sanitized.strip("_")
-    return sanitized
+    import html
+
+    # Decode HTML entities (e.g., &#39; -> ')
+    sanitized = html.unescape(filename)
+
+    # Remove control characters and non-printing whitespace
+    sanitized = re.sub(r"[\x00-\x1F\x7F-\x9F]", "", sanitized)
+
+    # Remove invalid filesystem characters
+    sanitized = re.sub(r'[<>:"/\\|?*]', "", sanitized)
+
+    # Replace various whitespace with single space
+    sanitized = re.sub(r"[\s\xa0\u2000-\u200B\u2028\u2029\u3000]+", " ", sanitized)
+
+    # Trim and replace remaining spaces with underscores
+    sanitized = sanitized.strip().replace(" ", "_")
+
+    # Remove consecutive underscores and other separators
+    sanitized = re.sub(r"[-._]+", "_", sanitized)
+
+    # Remove leading/trailing underscores and hyphens
+    sanitized = sanitized.strip("_-")
+
+    # Limit filename length (before extension)
+    if len(sanitized) > max_length:
+        sanitized = sanitized[:max_length].rstrip("_-")
+
+    return sanitized or "untitled"
 
 
 def ensure_output_dir(output_dir: str) -> None:
