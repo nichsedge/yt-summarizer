@@ -110,19 +110,50 @@ Create a well-structured summary optimized for learning, using bullet points and
         with open(config_path, "r") as f:
             data = json.load(f)
 
+        return cls.from_dict(data)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Settings":
+        """Create settings from a dictionary."""
         # Convert dictionaries to appropriate dataclass instances
         providers = {}
         for name, provider_data in data.get("providers", {}).items():
             providers[name] = ProviderSettings(**provider_data)
-        data["providers"] = providers
+        
+        # Create a copy of data to avoid modifying the original
+        processed_data = data.copy()
+        processed_data["providers"] = providers
 
-        if "processing" in data:
-            data["processing"] = ProcessingSettings(**data["processing"])
+        if "processing" in processed_data and isinstance(processed_data["processing"], dict):
+            processed_data["processing"] = ProcessingSettings(**processed_data["processing"])
 
-        if "output" in data:
-            data["output"] = OutputSettings(**data["output"])
+        if "output" in processed_data and isinstance(processed_data["output"], dict):
+            processed_data["output"] = OutputSettings(**processed_data["output"])
 
-        return cls(**data)
+        # Filter out keys that are not in the dataclass fields
+        import dataclasses
+        field_names = {f.name for f in dataclasses.fields(cls)}
+        filtered_data = {k: v for k, v in processed_data.items() if k in field_names}
+
+        return cls(**filtered_data)
+
+    def update_from_file(self, config_path: Path):
+        """Update this instance from a JSON configuration file."""
+        if not config_path.exists():
+            return
+
+        with open(config_path, "r") as f:
+            data = json.load(f)
+
+        self.update_from_dict(data)
+
+    def update_from_dict(self, data: Dict[str, Any]):
+        """Update this instance from a dictionary."""
+        new_settings = self.from_dict(data)
+        
+        import dataclasses
+        for field in dataclasses.fields(self):
+            setattr(self, field.name, getattr(new_settings, field.name))
 
     def to_file(self, config_path: Path):
         """Save settings to a JSON configuration file."""

@@ -100,10 +100,22 @@ Examples:
         create_sample_config(args.create_config)
         return 0
 
-    # Load configuration if provided
-    if args.config:
-        global settings
-        settings = Settings.from_file(args.config)
+    # Load configuration
+    config_file = args.config
+    
+    # If no config provided, look for config.json in current directory
+    if not config_file:
+        default_config = Path("config.json")
+        if default_config.exists():
+            config_file = default_config
+            logging.info(f"Using configuration from {config_file}")
+
+    if config_file:
+        try:
+            settings.update_from_file(config_file)
+        except Exception as e:
+            logging.error(f"Failed to load configuration from {config_file}: {e}")
+            return 1
 
     # Process URL
     url = args.url
