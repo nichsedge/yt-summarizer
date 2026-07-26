@@ -53,7 +53,7 @@ class Settings:
                 base_url="https://openrouter.ai/api/v1",
                 api_key_env="OPENROUTER_API_KEY",
                 extra_headers={
-                    "HTTP-Referer": "https://nichsedge.github.io/digital-garden",
+                    "HTTP-Referer": "https://github.com/nichsedge/yt-summarizer",
                     "X-Title": "Youtube Summarizer",
                 },
             ),
