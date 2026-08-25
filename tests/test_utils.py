@@ -14,11 +14,11 @@ class TestSanitizeFilename:
 
     def test_basic_sanitization(self):
         """Test basic character removal."""
-        assert sanitize_filename("test<file>name") == "testfilename"
-        assert sanitize_filename('test"file"name') == "testfilename"
-        assert sanitize_filename("test/file\\name") == "testfilename"
-        assert sanitize_filename("test:file|name") == "testfilename"
-        assert sanitize_filename("test?file*name") == "testfilename"
+        assert sanitize_filename("test<file>name") == "test_file_name"
+        assert sanitize_filename('test"file"name') == "test_file_name"
+        assert sanitize_filename("test/file\\name") == "test_file_name"
+        assert sanitize_filename("test:file|name") == "test_file_name"
+        assert sanitize_filename("test?file*name") == "test_file_name"
 
     def test_space_replacement(self):
         """Test space to underscore replacement."""
@@ -27,12 +27,12 @@ class TestSanitizeFilename:
 
     def test_edge_cases(self):
         """Test edge cases."""
-        assert sanitize_filename("") == ""
-        assert sanitize_filename("___") == ""
+        assert sanitize_filename("") == "untitled"
+        assert sanitize_filename("___") == "untitled"
         assert sanitize_filename("_test_file_") == "test_file"
         assert (
             sanitize_filename('test"file_with/invalid\\chars')
-            == "testfile_withinvalidchars"
+            == "test_file_with_invalid_chars"
         )
 
 
