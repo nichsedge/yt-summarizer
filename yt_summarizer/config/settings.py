@@ -2,11 +2,11 @@
 Configuration settings and management for YouTube Summarizer.
 """
 
-import os
-from typing import Dict, Any, Optional
+import json
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-import json
+from typing import Any
 
 
 @dataclass
@@ -14,10 +14,13 @@ class ProviderSettings:
     """Settings for an AI provider."""
 
     default_model: str
-    base_url: Optional[str] = None
+    base_url: str | None = None
     api_key_env: str = ""
-    extra_headers: Dict[str, str] = field(default_factory=dict)
-    extra_body: Dict[str, Any] = field(default_factory=dict)
+    # Retry count and per-request timeout for the OpenAI-compatible client.
+    max_retries: int = 2
+    request_timeout: float | None = None
+    extra_headers: dict[str, str] = field(default_factory=dict)
+    extra_body: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -43,7 +46,7 @@ class Settings:
     """Main configuration settings."""
 
     # Provider configurations
-    providers: Dict[str, ProviderSettings] = field(
+    providers: dict[str, ProviderSettings] = field(
         default_factory=lambda: {
             "openai": ProviderSettings(
                 default_model="gpt-3.5-turbo", api_key_env="OPENAI_API_KEY"
@@ -107,55 +110,73 @@ Create a well-structured summary optimized for learning, using bullet points and
         if not config_path.exists():
             return cls()
 
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             data = json.load(f)
 
         return cls.from_dict(data)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Settings":
+    def from_dict(cls, data: dict[str, Any]) -> "Settings":
         """Create settings from a dictionary."""
-        # Convert dictionaries to appropriate dataclass instances
-        providers = {}
-        for name, provider_data in data.get("providers", {}).items():
-            providers[name] = ProviderSettings(**provider_data)
-        
-        # Create a copy of data to avoid modifying the original
-        processed_data = data.copy()
+        import dataclasses
+
+        def build(model_cls: type, section: str, values: dict[str, Any]) -> Any:
+            """Instantiate a dataclass, warning instead of failing on unknown keys."""
+            known = {f.name for f in dataclasses.fields(model_cls)}
+            unknown = sorted(set(values) - known)
+            if unknown:
+                logging.warning(
+                    f"Ignoring unknown config keys in '{section}': "
+                    f"{', '.join(unknown)}"
+                )
+            return model_cls(**{k: v for k, v in values.items() if k in known})
+
+        providers = {
+            name: build(ProviderSettings, f"providers.{name}", provider_data)
+            for name, provider_data in data.get("providers", {}).items()
+        }
+
+        processed_data = dict(data)
         processed_data["providers"] = providers
 
-        if "processing" in processed_data and isinstance(processed_data["processing"], dict):
-            processed_data["processing"] = ProcessingSettings(**processed_data["processing"])
+        if isinstance(processed_data.get("processing"), dict):
+            processed_data["processing"] = build(
+                ProcessingSettings, "processing", processed_data["processing"]
+            )
 
-        if "output" in processed_data and isinstance(processed_data["output"], dict):
-            processed_data["output"] = OutputSettings(**processed_data["output"])
+        if isinstance(processed_data.get("output"), dict):
+            processed_data["output"] = build(
+                OutputSettings, "output", processed_data["output"]
+            )
 
-        # Filter out keys that are not in the dataclass fields
-        import dataclasses
         field_names = {f.name for f in dataclasses.fields(cls)}
+        unknown = sorted(set(processed_data) - field_names)
+        if unknown:
+            logging.warning(f"Ignoring unknown config keys: {', '.join(unknown)}")
         filtered_data = {k: v for k, v in processed_data.items() if k in field_names}
 
         return cls(**filtered_data)
 
-    def update_from_file(self, config_path: Path):
+    def update_from_file(self, config_path: Path) -> None:
         """Update this instance from a JSON configuration file."""
         if not config_path.exists():
             return
 
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             data = json.load(f)
 
         self.update_from_dict(data)
 
-    def update_from_dict(self, data: Dict[str, Any]):
+    def update_from_dict(self, data: dict[str, Any]) -> None:
         """Update this instance from a dictionary."""
         new_settings = self.from_dict(data)
-        
-        import dataclasses
-        for field in dataclasses.fields(self):
-            setattr(self, field.name, getattr(new_settings, field.name))
 
-    def to_file(self, config_path: Path):
+        import dataclasses
+
+        for f in dataclasses.fields(self):
+            setattr(self, f.name, getattr(new_settings, f.name))
+
+    def to_file(self, config_path: Path) -> None:
         """Save settings to a JSON configuration file."""
         config_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -166,6 +187,8 @@ Create a well-structured summary optimized for learning, using bullet points and
                     "default_model": p.default_model,
                     "base_url": p.base_url,
                     "api_key_env": p.api_key_env,
+                    "max_retries": p.max_retries,
+                    "request_timeout": p.request_timeout,
                     "extra_headers": p.extra_headers,
                     "extra_body": p.extra_body,
                 }

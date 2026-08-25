@@ -8,13 +8,13 @@ This package provides functionality to:
 - Export summaries as markdown files
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 __author__ = "YouTube Summarizer Team"
 
-from .core.summarizer import YouTubeSubtitleSummarizer
 from .core.provider_config import ProviderConfig
-from .core.transcript import TranscriptProcessor
+from .core.summarizer import YouTubeSubtitleSummarizer
 from .core.summary import SummaryGenerator
+from .core.transcript import TranscriptProcessor
 
 __all__ = [
     "YouTubeSubtitleSummarizer",

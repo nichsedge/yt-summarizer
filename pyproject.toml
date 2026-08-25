@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "yt-summarizer"
-version = "0.2.0"
+version = "0.3.0"
 requires-python = ">=3.14.7"
 dependencies = [
     "openai>=3.3.1",
@@ -77,13 +77,17 @@ include = '\.pyi?$'
 
 [tool.ruff]
 line-length = 88
-select = ["E", "F", "W", "I", "N", "B", "C90", "UP"]
 target-version = "py313"
 
 [tool.ruff.lint]
 # Enable pycodestyle (E), Pyflakes (F), and other rules
 select = ["E", "F", "W", "I", "N", "B", "C90", "UP"]
 ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+# Long lines here are prompt template literals; wrapping would change the
+# prompts sent to the model.
+"yt_summarizer/config/settings.py" = ["E501"]
 
 # Allow autofix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]

@@ -1,6 +1,5 @@
 """Test token counting utilities."""
 
-import pytest
 from yt_summarizer.utils import TokenCounter
 
 

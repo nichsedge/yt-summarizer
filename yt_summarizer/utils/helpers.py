@@ -2,10 +2,13 @@
 Utility functions for YouTube Summarizer.
 """
 
-import re
+import html
+import json
+import logging
 import os
-from typing import Set
-from urllib.parse import urlparse, parse_qs
+import re
+from typing import Any
+from urllib.parse import parse_qs, urlparse
 
 
 def sanitize_filename(filename: str, max_length: int = 200) -> str:
@@ -19,7 +22,6 @@ def sanitize_filename(filename: str, max_length: int = 200) -> str:
     Returns:
         Sanitized filename
     """
-    import html
 
     # Decode HTML entities (e.g., &#39; -> ')
     sanitized = html.unescape(filename)
@@ -141,16 +143,76 @@ def get_video_title_from_html(video_id: str, timeout: int = 20) -> str:
     return "YouTube Video Summary"
 
 
+def _extract_ids_from_initial_data(page_html: str) -> list:
+    """
+    Extract ordered playlist video IDs from the ytInitialData JSON payload.
+
+    Walks the JSON tree collecting playlistVideoRenderer.videoId entries in
+    document order, so only videos actually part of the playlist are returned.
+
+    Args:
+        page_html: Raw playlist page HTML
+
+    Returns:
+        List of unique video IDs in playlist order ([] if payload missing/invalid)
+    """
+    match = re.search(r"var ytInitialData\s*=\s*({.+?})\s*;\s*</script>", page_html)
+    if not match:
+        return []
+    try:
+        data = json.loads(match.group(1))
+    except json.JSONDecodeError:
+        return []
+
+    ids: list[str] = []
+
+    def walk(node: Any) -> None:
+        if isinstance(node, dict):
+            renderer = node.get("playlistVideoRenderer")
+            if isinstance(renderer, dict):
+                video_id = renderer.get("videoId")
+                if isinstance(video_id, str) and video_id:
+                    ids.append(video_id)
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                walk(value)
+
+    walk(data)
+    return list(dict.fromkeys(ids))
+
+
+def _extract_ids_from_html(page_html: str) -> list:
+    """
+    Fallback: scan raw HTML for watch?v= links in order of appearance.
+
+    May include IDs for videos outside the playlist (e.g. recommendations).
+    """
+    pattern = re.compile(r"watch\?v=([A-Za-z0-9_-]{11})")
+    seen: set[str] = set()
+    ordered: list = []
+    for m in pattern.finditer(page_html):
+        vid = m.group(1)
+        if vid not in seen:
+            seen.add(vid)
+            ordered.append(vid)
+    return ordered
+
+
 def extract_playlist_video_ids(playlist_url: str, timeout: int = 30) -> list:
     """
-    Extract unique video IDs from a YouTube playlist HTML without API keys.
+    Extract unique video IDs from a YouTube playlist page without API keys.
+
+    Prefers the structured ytInitialData payload (exact membership and order);
+    falls back to a raw HTML link scan when that payload is unavailable.
 
     Args:
         playlist_url: URL of the YouTube playlist
         timeout: Request timeout in seconds
 
     Returns:
-        List of video IDs in order of appearance
+        List of video IDs in playlist order
 
     Raises:
         ValueError: If URL is not a valid playlist URL
@@ -167,21 +229,11 @@ def extract_playlist_video_ids(playlist_url: str, timeout: int = 30) -> list:
     }
     resp = requests.get(playlist_url, headers=headers, timeout=timeout)
     resp.raise_for_status()
-    html = resp.text
+    page_html = resp.text
 
-    pattern = re.compile(r"watch\?v=([A-Za-z0-9_-]{11})")
-    seen: Set[str] = set()
-    ordered: list = []
-    for m in pattern.finditer(html):
-        vid = m.group(1)
-        if vid not in seen:
-            seen.add(vid)
-            ordered.append(vid)
+    video_ids = _extract_ids_from_initial_data(page_html)
+    if video_ids:
+        return video_ids
 
-    if not ordered:
-        import logging
-
-        logging.warning(
-            "No video IDs found in playlist HTML. The page might require JS to render items."
-        )
-    return ordered
+    logging.debug("ytInitialData missing or unparsable; falling back to HTML scan")
+    return _extract_ids_from_html(page_html)

@@ -1,11 +1,11 @@
 """Test utility functions."""
 
 import pytest
+
 from yt_summarizer.utils import (
-    sanitize_filename,
-    is_playlist_url,
     extract_video_id,
-    extract_playlist_video_ids,
+    is_playlist_url,
+    sanitize_filename,
 )
 
 
@@ -13,7 +13,7 @@ class TestSanitizeFilename:
     """Test filename sanitization."""
 
     def test_basic_sanitization(self):
-        """Test basic character removal."""
+        """Test character replacement with underscores."""
         assert sanitize_filename("test<file>name") == "test_file_name"
         assert sanitize_filename('test"file"name') == "test_file_name"
         assert sanitize_filename("test/file\\name") == "test_file_name"
@@ -78,9 +78,3 @@ class TestURLHelpers:
 
         with pytest.raises(ValueError):
             extract_video_id("https://www.youtube.com/playlist?list=xxxxx")
-
-    def test_playlist_video_extraction(self):
-        """Test extracting video IDs from playlist."""
-        # This would require actual HTTP requests, so we'll test with mock
-        # TODO: Add mock tests for this function
-        pass

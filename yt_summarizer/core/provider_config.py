@@ -3,7 +3,8 @@ Provider configuration for AI providers.
 """
 
 import os
-from typing import Dict, Any, Optional
+from typing import Any
+
 from openai import OpenAI
 
 from ..config import settings
@@ -13,7 +14,12 @@ from ..exceptions import ConfigurationError, ProviderError
 class ProviderConfig:
     """Configuration class for AI providers."""
 
-    def __init__(self, provider: str = None, model: str = None, api_key: str = None):
+    def __init__(
+        self,
+        provider: str | None = None,
+        model: str | None = None,
+        api_key: str | None = None,
+    ):
         """
         Initialize provider configuration.
 
@@ -35,8 +41,7 @@ class ProviderConfig:
         try:
             self.provider_settings = settings.get_provider_setting(self.provider)
         except ValueError as e:
-            raise ConfigurationError(str(e))
-
+            raise ConfigurationError(str(e)) from e
         # Get model from constructor or environment or default
         self.model = (
             model or os.getenv("AI_MODEL") or self.provider_settings.default_model
@@ -70,7 +75,15 @@ class ProviderConfig:
             ProviderError: If client creation fails
         """
         try:
-            client_kwargs = {"api_key": self.api_key}
+            client_kwargs: dict[str, Any] = {
+                "api_key": self.api_key,
+                # The OpenAI SDK retries transient errors (429/5xx/connection)
+                # with exponential backoff.
+                "max_retries": self.provider_settings.max_retries,
+            }
+
+            if self.provider_settings.request_timeout is not None:
+                client_kwargs["timeout"] = self.provider_settings.request_timeout
 
             if self.base_url:
                 client_kwargs["base_url"] = self.base_url
@@ -79,9 +92,9 @@ class ProviderConfig:
         except Exception as e:
             raise ProviderError(
                 f"Failed to create client for {self.provider}: {str(e)}"
-            )
+            ) from e
 
-    def get_request_kwargs(self) -> Dict[str, Any]:
+    def get_request_kwargs(self) -> dict[str, Any]:
         """Get additional kwargs for API requests."""
         kwargs = {}
 

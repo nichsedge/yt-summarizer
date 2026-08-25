@@ -1,15 +1,15 @@
 """Test configuration management."""
 
-import json
 import tempfile
 from pathlib import Path
 
 import pytest
+
 from yt_summarizer.config import (
-    Settings,
-    ProviderSettings,
-    ProcessingSettings,
     OutputSettings,
+    ProcessingSettings,
+    ProviderSettings,
+    Settings,
 )
 
 
@@ -97,3 +97,20 @@ class TestSettings:
         # Should return default settings
         assert settings.default_provider == "openrouter"
         assert settings.processing.max_tokens_per_chunk == 3000
+
+    def test_unknown_keys_warn_and_are_ignored(self, caplog):
+        """Unknown keys log a warning instead of silently disappearing."""
+        import logging
+
+        with caplog.at_level(logging.WARNING):
+            settings = Settings.from_dict(
+                {
+                    "default_providr": "openai",
+                    "processing": {"max_tokens_per_chunk": 1500, "bogus": True},
+                }
+            )
+
+        assert settings.processing.max_tokens_per_chunk == 1500
+        assert settings.default_provider == "openrouter"  # default kept
+        assert "default_providr" in caplog.text
+        assert "bogus" in caplog.text

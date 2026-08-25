@@ -4,27 +4,35 @@ Summary generation using AI providers.
 
 import logging
 from datetime import datetime
-from typing import List
 
-from ..config import settings
+from ..config import Settings
+from ..config import settings as default_settings
 from ..exceptions import ProviderError
+from ..utils import TokenCounter
+from .provider_config import ProviderConfig
 
 
 class SummaryGenerator:
     """Generates summaries using configured AI provider."""
 
-    def __init__(self, provider_config, token_counter):
+    def __init__(
+        self,
+        provider_config: ProviderConfig,
+        token_counter: TokenCounter,
+        settings: Settings | None = None,
+    ) -> None:
         """
-        Initialize the summary generator.
+        Initialize the generator.
 
         Args:
-            provider_config: Configured provider instance
-            token_counter: Token counter instance
+            provider_config: Configured ProviderConfig
+            token_counter: TokenCounter instance
+            settings: Optional Settings override (defaults to global settings)
         """
         self.provider_config = provider_config
         self.client = provider_config.create_client()
         self.token_counter = token_counter
-        self.settings = settings
+        self.settings = settings or default_settings
 
     def summarize_chunk(self, chunk: str, chunk_number: int, total_chunks: int) -> str:
         """
@@ -60,14 +68,23 @@ class SummaryGenerator:
                 **request_kwargs,
             )
 
-            return response.choices[0].message.content.strip()
+            content = response.choices[0].message.content
+            if not isinstance(content, str) or not content.strip():
+                raise ProviderError(
+                    f"Empty response for chunk {chunk_number} from "
+                    f"{self.provider_config.provider}"
+                )
+            return content.strip()
 
         except Exception as e:
-            error_msg = f"Error summarizing chunk {chunk_number} with {self.provider_config.provider}: {str(e)}"
+            error_msg = (
+                f"Error summarizing chunk {chunk_number} with "
+                f"{self.provider_config.provider}: {str(e)}"
+            )
             logging.error(error_msg)
-            raise ProviderError(error_msg)
+            raise ProviderError(error_msg) from e
 
-    def merge_summaries(self, summaries: List[str], video_title: str = "") -> str:
+    def merge_summaries(self, summaries: list[str], video_title: str = "") -> str:
         """
         Merge all summaries into a single Markdown document.
 
@@ -104,28 +121,45 @@ class SummaryGenerator:
 
         return markdown_doc
 
-    def save_summary(self, markdown_doc: str, video_title: str) -> str:
+    def output_path_for(self, video_title: str, video_id: str | None = None) -> str:
         """
-        Save summary to a markdown file.
+        Build the output file path for a video.
+
+        Including the video ID keeps same-titled videos from overwriting
+        each other and makes the skip-existing check deterministic.
+
+        Args:
+            video_title: Video title for the filename
+            video_id: Optional YouTube video ID appended to the filename
+
+        Returns:
+            Path to the summary markdown file
+        """
+        import os
+
+        from ..utils import sanitize_filename
+
+        base_name = sanitize_filename(video_title)
+        if video_id:
+            base_name = f"{base_name}_{video_id}"
+        return os.path.join(self.settings.output.output_dir, f"{base_name}.md")
+
+    def save_summary(self, markdown_doc: str, output_file: str) -> str:
+        """
+        Save a markdown document to a file.
 
         Args:
             markdown_doc: Complete markdown document
-            video_title: Video title for filename
+            output_file: Target file path (see output_path_for)
 
         Returns:
             Path to saved file
         """
-        from ..utils import sanitize_filename, ensure_output_dir
+        from ..utils import ensure_output_dir
 
         # Ensure output directory exists
         ensure_output_dir(self.settings.output.output_dir)
 
-        # Generate output filename
-        output_file = (
-            f"{self.settings.output.output_dir}/{sanitize_filename(video_title)}.md"
-        )
-
-        # Save to file
         with open(output_file, "w", encoding="utf-8") as f:
             f.write(markdown_doc)
 

@@ -3,10 +3,10 @@ Configuration module for YouTube Summarizer.
 """
 
 from .settings import (
-    Settings,
-    ProviderSettings,
-    ProcessingSettings,
     OutputSettings,
+    ProcessingSettings,
+    ProviderSettings,
+    Settings,
     settings,
 )
 

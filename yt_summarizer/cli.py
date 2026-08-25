@@ -4,17 +4,18 @@ Command line interface for YouTube Summarizer.
 
 import argparse
 import logging
-import os
 import sys
+import traceback
 from pathlib import Path
 
 from . import __version__
-from .core import YouTubeSubtitleSummarizer, ProviderConfig
-from .config import settings, Settings
+from .config import settings
+from .core import YouTubeSubtitleSummarizer
 from .exceptions import YouTubeSummarizerError
+from .utils import is_playlist_url
 
 
-def setup_logging(verbose: bool = False):
+def setup_logging(verbose: bool = False) -> None:
     """Setup logging configuration."""
     level = logging.DEBUG if verbose else logging.INFO
     logging.basicConfig(
@@ -24,10 +25,10 @@ def setup_logging(verbose: bool = False):
     )
 
 
-def list_providers():
+def list_providers() -> None:
     """List available AI providers."""
     print("\nAvailable providers:")
-    for provider in ProviderConfig().providers.keys():
+    for provider in settings.providers.keys():
         provider_settings = settings.get_provider_setting(provider)
         print(f"  - {provider}")
         print(f"    Default model: {provider_settings.default_model}")
@@ -37,15 +38,15 @@ def list_providers():
         print()
 
 
-def create_sample_config(config_path: Path):
+def create_sample_config(config_path: Path) -> None:
     """Create a sample configuration file."""
     settings.to_file(config_path)
     print(f"Sample configuration created at: {config_path}")
     print("\nYou can now edit this file and use it with --config option.")
 
 
-def main():
-    """Main CLI entry point."""
+def build_parser() -> argparse.ArgumentParser:
+    """Build the CLI argument parser."""
     parser = argparse.ArgumentParser(
         description="Generate summaries from YouTube video subtitles",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -59,10 +60,7 @@ Examples:
         """,
     )
 
-    # Arguments
     parser.add_argument("url", nargs="?", help="YouTube video or playlist URL")
-
-    # Options
     parser.add_argument(
         "--provider", "-p", help="AI provider (openai, openrouter, ollama)"
     )
@@ -80,89 +78,103 @@ Examples:
         "--create-config", type=Path, help="Create a sample configuration file and exit"
     )
     parser.add_argument(
+        "--force",
+        "-f",
+        action="store_true",
+        help="Regenerate summaries even if the output file already exists",
+    )
+    parser.add_argument(
         "--verbose", "-v", action="store_true", help="Enable verbose logging"
     )
     parser.add_argument(
         "--version", action="version", version=f"%(prog)s {__version__}"
     )
+    return parser
 
-    args = parser.parse_args()
 
-    # Setup logging
-    setup_logging(args.verbose)
+def load_configuration(config_file: Path | None) -> int | None:
+    """
+    Apply --config or auto-detected ./config.json to global settings.
 
-    # Handle special commands
-    if args.list_providers:
-        list_providers()
-        return 0
-
-    if args.create_config:
-        create_sample_config(args.create_config)
-        return 0
-
-    # Load configuration
-    config_file = args.config
-    
-    # If no config provided, look for config.json in current directory
+    Returns:
+        Exit code on failure, None on success.
+    """
     if not config_file:
         default_config = Path("config.json")
         if default_config.exists():
             config_file = default_config
             logging.info(f"Using configuration from {config_file}")
 
-    if config_file:
-        try:
-            settings.update_from_file(config_file)
-        except Exception as e:
-            logging.error(f"Failed to load configuration from {config_file}: {e}")
-            return 1
-
-    # Process URL
-    url = args.url
-    if not url:
-        # Handle special commands that don't need a URL
-        if args.list_providers or args.create_config:
-            return 0 # Already handled above, but just in case
-            
-        try:
-            url = input("Enter YouTube URL: ").strip()
-        except EOFError:
-            print() # New line after Ctrl+D
-            return 0
-        except KeyboardInterrupt:
-            print() # New line after Ctrl+C
-            return 1
-            
-        if not url:
-            logging.error("YouTube URL is required")
-            return 1
+    if not config_file:
+        return None
 
     try:
-        # Initialize summarizer
+        settings.update_from_file(config_file)
+    except Exception as e:
+        logging.error(f"Failed to load configuration from {config_file}: {e}")
+        return 1
+    return None
+
+
+def print_preview(result_file: str, max_lines: int = 20) -> None:
+    """Print the first lines of a generated summary."""
+    print("\nPreview:")
+    print("-" * 40)
+    with open(result_file, encoding="utf-8") as f:
+        lines = f.readlines()
+        for line in lines[:max_lines]:
+            print(line.rstrip())
+        if len(lines) > max_lines:
+            print(f"\n... ({len(lines) - max_lines} more lines)")
+        print("-" * 40)
+
+
+def prompt_for_url(url: str | None) -> tuple[str | None, int]:
+    """
+    Resolve the URL argument or ask interactively.
+
+    Returns:
+        (url, exit_code): exactly one is meaningful; (None, 0) means a clean
+        EOF abort, (None, nonzero) an error.
+    """
+    if url:
+        return url, 0
+    try:
+        prompted = input("Enter YouTube URL: ").strip()
+    except EOFError:
+        print()
+        return None, 0
+    except KeyboardInterrupt:
+        print()
+        return None, 1
+    if not prompted:
+        logging.error("YouTube URL is required")
+        return None, 1
+    return prompted, 0
+
+
+def run(args: argparse.Namespace) -> int:
+    """Process the resolved URL with a configured summarizer."""
+    url, code = prompt_for_url(args.url)
+    if url is None:
+        return code
+
+    try:
         summarizer = YouTubeSubtitleSummarizer(
-            provider=args.provider, model=args.model, api_key=args.api_key
+            provider=args.provider,
+            model=args.model,
+            api_key=args.api_key,
+            force=args.force,
         )
 
-        # Process URL
-        from .utils import is_playlist_url
         if is_playlist_url(url):
             outputs = summarizer.process_playlist(url)
             logging.info(f"Done! {len(outputs)} summaries generated.")
         else:
             result_file = summarizer.process_video(url)
             logging.info(f"Done! Summary saved to: {result_file}")
-
-            # Optionally display preview
             if not args.verbose:
-                print("\nPreview:")
-                print("-" * 40)
-                with open(result_file, "r", encoding="utf-8") as f:
-                    lines = f.readlines()
-                    for line in lines[:20]:  # Show first 20 lines
-                        print(line.rstrip())
-                    if len(lines) > 20:
-                        print(f"\n... ({len(lines) - 20} more lines)")
-                    print("-" * 40)
+                print_preview(result_file)
 
         return 0
 
@@ -175,10 +187,28 @@ Examples:
     except Exception as e:
         logging.error(f"Unexpected error: {str(e)}")
         if args.verbose:
-            import traceback
-
             traceback.print_exc()
         return 1
+
+
+def main() -> int:
+    """Main CLI entry point."""
+    args = build_parser().parse_args()
+    setup_logging(args.verbose)
+
+    if args.list_providers:
+        list_providers()
+        return 0
+
+    if args.create_config:
+        create_sample_config(args.create_config)
+        return 0
+
+    status = load_configuration(args.config)
+    if status is not None:
+        return status
+
+    return run(args)
 
 
 if __name__ == "__main__":

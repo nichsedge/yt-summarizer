@@ -133,7 +133,7 @@ Example configuration:
 ```
 usage: yt-summarizer [-h] [--provider PROVIDER] [--model MODEL] [--api-key API_KEY]
                      [--config CONFIG] [--list-providers] [--create-config CREATE_CONFIG]
-                     [--verbose] [--version] [url]
+                     [--force] [--verbose] [--version] [url]
 
 Generate summaries from YouTube video subtitles
 
@@ -149,6 +149,7 @@ options:
   --list-providers      List available providers and exit
   --create-config       Create a sample configuration file and exit
   --verbose, -v         Enable verbose logging
+  --force, -f           Regenerate summaries even if the output file already exists
   --version             show program's version number and exit
 ```
 
@@ -216,6 +217,10 @@ Summaries are generated as structured Markdown documents with:
 - Headers and sub-points
 - Bold emphasis for key terms
 
+Files are saved as `<output_dir>/<sanitized_title>_<video_id>.md`. If a
+summary for a video already exists, processing skips it; pass `--force`
+(or `force=True` in Python) to regenerate.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
@@ -257,6 +262,16 @@ This project uses:
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Changelog
+
+### v0.3.0
+- Fixed `--list-providers` crashing without an API key
+- Playlist parsing now reads `ytInitialData`, so only actual playlist videos are processed (regex fallback retained)
+- Added retries with backoff and configurable timeout per provider (`max_retries`, `request_timeout`)
+- Linear-time transcript chunking; unknown models fall back to `cl100k_base` token counts
+- Transcript selection honors `prefer_manual_transcripts=false` and reports fetch errors instead of silently degrading
+- Config files now warn on unknown keys instead of silently ignoring them
+- Summaries are saved as `<title>_<video_id>.md`; existing summaries are skipped unless `--force` is passed
+- Optional `settings` injection for `YouTubeSubtitleSummarizer` for testability
 
 ### v0.2.1
 - Cleaned up codebase and removed legacy monolithic scripts

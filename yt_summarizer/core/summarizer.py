@@ -3,16 +3,16 @@ Main YouTube subtitle summarizer class.
 """
 
 import logging
-from typing import List
+import os
 
-from ..config import settings
+from ..config import Settings
+from ..config import settings as default_settings
 from ..exceptions import PlaylistError, VideoProcessingError, YouTubeSummarizerError
 from ..utils import (
     TokenCounter,
     extract_playlist_video_ids,
     extract_video_id,
     get_video_title_from_html,
-    is_playlist_url,
 )
 from .provider_config import ProviderConfig
 from .summary import SummaryGenerator
@@ -24,10 +24,12 @@ class YouTubeSubtitleSummarizer:
 
     def __init__(
         self,
-        provider: str = None,
-        model: str = None,
-        api_key: str = None,
-        openai_api_key: str = None,
+        provider: str | None = None,
+        model: str | None = None,
+        api_key: str | None = None,
+        openai_api_key: str | None = None,
+        force: bool = False,
+        settings: Settings | None = None,
     ):
         """
         Initialize the YouTube Subtitle Summarizer.
@@ -48,6 +50,9 @@ class YouTubeSubtitleSummarizer:
                 "openai_api_key parameter is deprecated. Use api_key instead."
             )
 
+        self.force = force
+        self.settings = settings or default_settings
+
         try:
             # Initialize provider configuration
             self.provider_config = ProviderConfig(
@@ -55,17 +60,20 @@ class YouTubeSubtitleSummarizer:
             )
 
             # Initialize components
-            self.transcript_processor = TranscriptProcessor()
-            self.token_counter = TokenCounter()
+            self.transcript_processor = TranscriptProcessor(settings=self.settings)
+            self.token_counter = TokenCounter(model_name=self.provider_config.model)
             self.summary_generator = SummaryGenerator(
-                self.provider_config, self.token_counter
+                self.provider_config, self.token_counter, self.settings
             )
 
             logging.info(
-                f"Initialized with {self.provider_config.provider}/{self.provider_config.model}"
+                f"Initialized with "
+                f"{self.provider_config.provider}/{self.provider_config.model}"
             )
         except Exception as e:
-            raise YouTubeSummarizerError(f"Failed to initialize summarizer: {str(e)}")
+            raise YouTubeSummarizerError(
+                f"Failed to initialize summarizer: {str(e)}"
+            ) from e
 
     def process_video(self, video_url: str) -> str:
         """
@@ -85,9 +93,17 @@ class YouTubeSubtitleSummarizer:
             video_title = get_video_title_from_html(video_id)
             logging.info(f"Summarizing: {video_title}")
 
+            output_file = self.summary_generator.output_path_for(video_title, video_id)
+            if os.path.exists(output_file) and not self.force:
+                logging.info(
+                    f"Summary already exists, skipping ({output_file}). "
+                    "Pass force=True / --force to regenerate."
+                )
+                return output_file
+
             subtitles = self.transcript_processor.get_subtitles(video_id)
             chunks = self.token_counter.split_text_into_chunks(
-                subtitles, settings.processing.max_tokens_per_chunk
+                subtitles, self.settings.processing.max_tokens_per_chunk
             )
 
             summaries = []
@@ -102,7 +118,7 @@ class YouTubeSubtitleSummarizer:
             )
 
             output_file = self.summary_generator.save_summary(
-                final_document, video_title
+                final_document, output_file
             )
             return output_file
 
@@ -110,9 +126,9 @@ class YouTubeSubtitleSummarizer:
             logging.error(f"Error processing video: {str(e)}")
             if isinstance(e, (VideoProcessingError, PlaylistError)):
                 raise
-            raise VideoProcessingError(f"Failed to process video: {str(e)}")
+            raise VideoProcessingError(f"Failed to process video: {str(e)}") from e
 
-    def process_playlist(self, playlist_url: str) -> List[str]:
+    def process_playlist(self, playlist_url: str) -> list[str]:
         """
         Process a playlist URL by extracting each video's subtitles, summarizing,
         and saving individual markdown files per video.
@@ -130,7 +146,7 @@ class YouTubeSubtitleSummarizer:
             video_ids = extract_playlist_video_ids(playlist_url)
             logging.info(f"Processing playlist: {len(video_ids)} videos found")
 
-            output_files: List[str] = []
+            output_files: list[str] = []
             for idx, vid in enumerate(video_ids, 1):
                 try:
                     video_url = f"https://www.youtube.com/watch?v={vid}"
@@ -144,4 +160,4 @@ class YouTubeSubtitleSummarizer:
             return output_files
         except Exception as e:
             logging.error(f"Error processing playlist: {str(e)}")
-            raise PlaylistError(f"Failed to process playlist: {str(e)}")
+            raise PlaylistError(f"Failed to process playlist: {str(e)}") from e
