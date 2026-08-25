@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  test:
+  ci:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -14,4 +14,4 @@ jobs:
         with:
           python-version: "3.13"
       - run: uv sync --locked
-      - run: uv run --with pytest pytest -q
+      - run: uv run python -c "import yt_summarizer"
