@@ -5,12 +5,12 @@ build-backend = "hatchling.build"
 [project]
 name = "yt-summarizer"
 version = "0.2.0"
-requires-python = ">=3.13"
+requires-python = ">=3.14.7"
 dependencies = [
     "openai>=3.3.1",
-    "requests>=2.32.5",
-    "tiktoken>=0.11.0",
-    "youtube-transcript-api>=1.2.2",
+    "requests>=2.34.2",
+    "tiktoken>=0.14.0",
+    "youtube-transcript-api>=1.2.4",
 ]
 description = "Generate AI-powered summaries from YouTube video subtitles"
 readme = "README.md"
@@ -40,24 +40,24 @@ yt-summarizer = "yt_summarizer.cli:main"
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.0.0",
-    "pytest-cov>=4.0.0",
-    "pytest-mock>=3.10.0",
-    "black>=24.0.0",
-    "ruff>=0.1.0",
-    "mypy>=1.5.0",
-    "hatchling>=1.25.0",
+    "pytest>=8.4.2",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.15.1",
+    "black>=24.10.0",
+    "ruff>=0.16.4",
+    "mypy>=1.20.2",
+    "hatchling>=1.32.0",
 ]
 
 [dependency-groups]
 dev = [
-    "pytest>=8.0.0",
-    "pytest-cov>=4.0.0",
-    "pytest-mock>=3.10.0",
-    "black>=24.0.0",
-    "ruff>=0.1.0",
-    "mypy>=1.5.0",
-    "hatchling>=1.25.0",
+    "pytest>=8.4.2",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.15.1",
+    "black>=24.10.0",
+    "ruff>=0.16.4",
+    "mypy>=1.20.2",
+    "hatchling>=1.32.0",
 ]
 
 [tool.pytest.ini_options]
